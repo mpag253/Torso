@@ -59,7 +59,7 @@ def initialise_torso_mesh(torso_dir, lung_dir, output_dir, template_dir):
     lung_r_zmax = get_lung_node_z(lung_rn, minmax_nodes[3])
     
     ## Retrieve torso data and evaluate the z-bounds
-    torso_data = np.loadtxt(torso_dir+"/surface_Torsotrimmed_crop.ipdata", skiprows=1)
+    torso_data = np.loadtxt(torso_dir+"/surface_Torsotrimmed_crop_cut.ipdata", skiprows=1)
     z_min = np.min(torso_data[:, 3])
     z_max = np.max(torso_data[:, 3])
     #z_rng = z_max - z_min
@@ -327,7 +327,7 @@ def main():
 
         # Read in subject data
         # define_data_geometry(os.path.join(output_directory, 'surface_Torsotrimmed'))
-        define_data_geometry(os.path.join(torso_directory, 'surface_Torsotrimmed_crop'))
+        define_data_geometry(os.path.join(torso_directory, 'surface_Torsotrimmed_crop_cut'))
         print (" -----data read")
         
         # Run fit

@@ -12,7 +12,14 @@ import pandas as pd
 
 input_list = np.array(pd.read_excel("/hpc/mpag253/Torso/torso_checklist.xlsx", skiprows=0, usecols=range(5), engine='openpyxl'))
 
-bbox = [-1e6, 1e6, 175, 1e6, -141, -101]  # [xmin, xmax, ymin, ymax, zmin, zmax]
+bbox = [-1e6, 1e6, -1e6, 1e6, -25, 1e6]  # [xmin, xmax, ymin, ymax, zmin, zmax]
+#bbox = [6., 345., -1e6, 1e6, -1e6, 1e6]
+remove_inside = True
+
+if remove_inside:
+    keyword = "within"
+else:
+    keyword = "outside"
 
 print("\n")
 for i in range(np.shape(input_list)[0]):
@@ -33,15 +40,23 @@ for i in range(np.shape(input_list)[0]):
                     xval = float(lines_data[ln+1])
                     yval = float(lines_data[ln+2])
                     zval = float(lines_data[ln+3])
-                    if (xval > bbox[0]) and (xval < bbox[1]):
-                        if (yval > bbox[2]) and (yval < bbox[3]):
-                            if (zval > bbox[4]) and (zval < bbox[5]):
-                                lines_data[ln+0] = ''
-                                lines_data[ln+1] = ''
-                                lines_data[ln+2] = ''
-                                lines_data[ln+3] = ''
-                                remove_bed_count += 1
-            print(subject+': Removed {:d} data points within bounding box from exdata.'.format(remove_bed_count))     
+                    if remove_inside:
+                        if (xval > bbox[0]) and (xval < bbox[1]):
+                            if (yval > bbox[2]) and (yval < bbox[3]):
+                                if (zval > bbox[4]) and (zval < bbox[5]):
+                                    lines_data[ln+0] = ''
+                                    lines_data[ln+1] = ''
+                                    lines_data[ln+2] = ''
+                                    lines_data[ln+3] = ''
+                                    remove_bed_count += 1
+                    else:  # remove outside
+                        if (xval < bbox[0]) or (xval > bbox[1]) or (yval < bbox[2]) or (yval > bbox[3]) or (zval < bbox[4]) or (zval > bbox[5]):
+                            lines_data[ln+0] = ''
+                            lines_data[ln+1] = ''
+                            lines_data[ln+2] = ''
+                            lines_data[ln+3] = ''
+                            remove_bed_count += 1
+            print(subject+': Removed {:d} data points {} bounding box from exdata.'.format(remove_bed_count, keyword))     
             file_out = open(torso_dir + "/surface_Torsotrimmed_crop_cut.exdata", 'w')
             file_out.writelines(lines_data)
             file_out.close() 
@@ -57,15 +72,26 @@ for i in range(np.shape(input_list)[0]):
                     xval = float(line.split()[1])
                     yval = float(line.split()[2])
                     zval = float(line.split()[3])
-                    if (xval > bbox[0]) and (xval < bbox[1]):
-                        if (yval > bbox[2]) and (yval < bbox[3]):
-                            if (zval > bbox[4]) and (zval < bbox[5]):
-                                lines_data[ln] = ''
-                                remove_bed_count += 1
-            print(subject+': Removed {:d} data points within bounding box from ipdata.'.format(remove_bed_count))     
+                    if remove_inside:
+                        if (xval > bbox[0]) and (xval < bbox[1]):
+                            if (yval > bbox[2]) and (yval < bbox[3]):
+                                if (zval > bbox[4]) and (zval < bbox[5]):
+                                    lines_data[ln] = ''
+                                    remove_bed_count += 1
+                    else:  # remove outside   
+                        if (xval < bbox[0]) or (xval > bbox[1]) or (yval < bbox[2]) or (yval > bbox[3]) or (zval < bbox[4]) or (zval > bbox[5]):
+                            lines_data[ln] = ''
+                            remove_bed_count += 1         
+            if remove_inside:
+                keyword = "within"
+            else:
+                keyword = "outside"
+            print(subject+': Removed {:d} data points {} bounding box from ipdata.'.format(remove_bed_count, keyword))     
             file_out = open(torso_dir + "/surface_Torsotrimmed_crop_cut.ipdata", 'w')
             file_out.writelines(lines_data)
-            file_out.close() 
+            file_out.close()
+
+print("\n")
             
             
             

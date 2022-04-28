@@ -1,6 +1,6 @@
 
 $study = 'Human_Aging';
-$subject = 'AGING006';
+$subject = 'AGING053';
 $condition = 'EIsupine';
  
 $fitpath = 'output/'.$subject.'/'.$condition.'/Torso';

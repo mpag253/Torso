@@ -9,6 +9,7 @@ input_list = np.array(pd.read_excel("/hpc/mpag253/Torso/torso_checklist.xlsx", s
 #action="update"
 action="final"
 
+
 print("\n")
 for i in range(np.shape(input_list)[0]):
     if input_list[i, 0] == 1:
