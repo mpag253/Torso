@@ -12,7 +12,7 @@ import pandas as pd
 
 input_list = np.array(pd.read_excel("/hpc/mpag253/Torso/torso_checklist.xlsx", skiprows=0, usecols=range(5), engine='openpyxl'))
 
-bbox = [-1e6, 1e6, -1e6, 1e6, -25, 1e6]  # [xmin, xmax, ymin, ymax, zmin, zmax]
+bbox = [-1e6, 1e6, -1e6, 1e6, -1e6, -319]  # [xmin, xmax, ymin, ymax, zmin, zmax]
 #bbox = [6., 345., -1e6, 1e6, -1e6, 1e6]
 remove_inside = True
 
@@ -31,7 +31,7 @@ for i in range(np.shape(input_list)[0]):
    
             # EXDATA: Read data, eliminate points outside limits, and write new file
             #print('EXDATA:')
-            file_data = open(torso_dir + "/surface_Torsotrimmed_crop.exdata", 'r')
+            file_data = open(torso_dir + "/surface_Torsotrimmed.exdata", 'r')
             lines_data = file_data.readlines()
             file_data.close()
             remove_bed_count = 0
@@ -57,13 +57,13 @@ for i in range(np.shape(input_list)[0]):
                             lines_data[ln+3] = ''
                             remove_bed_count += 1
             print(subject+': Removed {:d} data points {} bounding box from exdata.'.format(remove_bed_count, keyword))     
-            file_out = open(torso_dir + "/surface_Torsotrimmed_crop_cut.exdata", 'w')
+            file_out = open(torso_dir + "/surface_Torsotrimmed_cut.exdata", 'w')
             file_out.writelines(lines_data)
             file_out.close() 
             
             # IPDATA: Read data, eliminate points outside limits, and write new file
             #print('IPDATA:')
-            file_data = open(torso_dir + "/surface_Torsotrimmed_crop.ipdata", 'r')
+            file_data = open(torso_dir + "/surface_Torsotrimmed.ipdata", 'r')
             lines_data = file_data.readlines()
             file_data.close()
             remove_bed_count = 0
@@ -87,7 +87,7 @@ for i in range(np.shape(input_list)[0]):
             else:
                 keyword = "outside"
             print(subject+': Removed {:d} data points {} bounding box from ipdata.'.format(remove_bed_count, keyword))     
-            file_out = open(torso_dir + "/surface_Torsotrimmed_crop_cut.ipdata", 'w')
+            file_out = open(torso_dir + "/surface_Torsotrimmed_cut.ipdata", 'w')
             file_out.writelines(lines_data)
             file_out.close()
 

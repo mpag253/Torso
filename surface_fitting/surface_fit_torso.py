@@ -10,9 +10,13 @@ from aether.geometry import define_data_geometry,define_elem_geometry_2d,define_
 from aether.exports import export_data_geometry,export_elem_geometry_2d,export_node_geometry_2d 
 from aether.surface_fitting import fit_surface_geometry,initialise_fit_mesh
 
+from sys import exit
 
 def get_ellipse_y(x, a, b):
-    y = b*math.sqrt(1 - (x/a)**2)
+    if np.abs(x-a) < 1e-6:
+        y = 0
+    else:
+        y = b*math.sqrt(1 - (x/a)**2)
     return y
 
 
@@ -35,7 +39,7 @@ def get_lung_node_z(file, node_num):
     return zval
 
 
-def initialise_torso_mesh(torso_dir, lung_dir, output_dir, template_dir):
+def initialise_torso_mesh(torso_dir, lung_dir, output_dir, template_dir, landmarks_dir):
 
     # Read the mesh template .exnode file
     file_exn = open(template_dir+'/templatetorso.exnode', 'r')
@@ -53,27 +57,39 @@ def initialise_torso_mesh(torso_dir, lung_dir, output_dir, template_dir):
     n_data = n_data[n_data[:, 0].astype(int).argsort()]
     
     # Get landmarks from the corresponding fitted lung mesh
-    lung_rn = lung_dir + "/SurfaceFEMesh/Right_fitted.exnode"
-    minmax_nodes = [56, 96, 7, 49]  # [min_left, max_left, min_right, max_right]
-    lung_r_zmin = get_lung_node_z(lung_rn, minmax_nodes[2])
-    lung_r_zmax = get_lung_node_z(lung_rn, minmax_nodes[3])
+    # (lung nodes - old)
+    #lung_rn = lung_dir + "/SurfaceFEMesh/Right_fitted.exnode"
+    #minmax_nodes = [56, 96, 7, 49]  # [min_left, max_left, min_right, max_right]
+    #lung_r_zmin = get_lung_node_z(lung_rn, minmax_nodes[2])
+    #lung_r_zmax = get_lung_node_z(lung_rn, minmax_nodes[3])
+    # spine landmarks - new
+    landmarks = np.loadtxt(landmarks_dir+'/landmarks.txt')
+    [landmark_zmin, landmark_zmax, landmark_centre] = landmarks
     
     ## Retrieve torso data and evaluate the z-bounds
-    torso_data = np.loadtxt(torso_dir+"/surface_Torsotrimmed_crop_cut.ipdata", skiprows=1)
+    torso_data = np.loadtxt(torso_dir+"/surface_Torsotrimmed_crop_tf.ipdata", skiprows=1)
     z_min = np.min(torso_data[:, 3])
     z_max = np.max(torso_data[:, 3])
     #z_rng = z_max - z_min
     
     # Evaluate scaling parameters for the mesh
-    tol = 20.0
-    mask = (torso_data[:, 3] < (z_min + tol))
-    bot_ring = torso_data[mask, :]
-    bot_min_x = np.min(bot_ring[:, 1])
-    bot_max_x = np.max(bot_ring[:, 1])
-    bot_min_y = np.min(bot_ring[:, 2])
-    bot_max_y = np.max(bot_ring[:, 2])
-    centre = [(bot_min_x + bot_max_x)/2, (bot_min_y + bot_max_y)/2]
-    boxdim = [(bot_max_x - bot_min_x)/2, (bot_max_y - bot_min_y)/2]  # [a, b] for ellipse
+    # (old)
+    #tol = 20.0
+    #mask = (torso_data[:, 3] < (z_min + tol))
+    #bot_ring = torso_data[mask, :]
+    #bot_min_x = np.min(bot_ring[:, 1])
+    #bot_max_x = np.max(bot_ring[:, 1])
+    #bot_min_y = np.min(bot_ring[:, 2])
+    #bot_max_y = np.max(bot_ring[:, 2])
+    #centre = [(bot_min_x + bot_max_x)/2, (bot_min_y + bot_max_y)/2]
+    #boxdim = [(bot_max_x - bot_min_x)/2, (bot_max_y - bot_min_y)/2]  # [a, b] for ellipse
+    # (new)
+    x_max = np.max(torso_data[:, 1])
+    x_min = np.min(torso_data[:, 1])
+    y_max = np.max(torso_data[:, 2])
+    y_min = np.min(torso_data[:, 2])
+    centre = [landmark_centre, (y_max + y_min)/2]
+    boxdim = [(x_max - x_min)/2, (y_max - y_min)/2]
     
     # Define node groups for constraints
     nrings = 7
@@ -128,23 +144,29 @@ def initialise_torso_mesh(torso_dir, lung_dir, output_dir, template_dir):
             n_data[n-1, 1:] = 0.
             n_data[n-1, 1] = nx
             n_data[n-1, 5] = ny
-    z_ht = lung_r_zmax - lung_r_zmin
-    z_buffer_1 = z_ht*0.10
-    z_buffer_2 = z_ht*0.15
-    z_buffer_3 = z_ht*0.10
-    z_buffer_4 = z_ht*0.05
+    # (old)
+    #z_ht = lung_r_zmax - lung_r_zmin
+    #z_buffer_1 = z_ht*0.10
+    #z_buffer_2 = z_ht*0.15
+    #z_buffer_3 = z_ht*0.10
+    #z_buffer_4 = z_ht*0.05
+    #for r in range(nrings):
+    #    for i, n in enumerate(nod_rings[r, :].astype(int)):
+    #        if r == nrings-1: # bottom
+    #            n_data[n-1, 9] = lung_r_zmin - z_buffer_1
+    #        elif r == 0: # top
+    #            n_data[n - 1, 9] = lung_r_zmax + z_buffer_2
+    #        elif r == nrings-2: # second bottom
+    #            n_data[n - 1, 9] = lung_r_zmin + z_buffer_3
+    #        elif r == 1: # second top
+    #            n_data[n - 1, 9] = lung_r_zmax - z_buffer_4
+    #        else:
+    #            n_data[n - 1, 9] = lung_r_zmax - z_buffer_4 - (z_ht - z_buffer_3 - z_buffer_4)/(nrings-3)*(r-1)
+    # (new)
     for r in range(nrings):
         for i, n in enumerate(nod_rings[r, :].astype(int)):
-            if r == nrings-1: # bottom
-                n_data[n-1, 9] = lung_r_zmin - z_buffer_1
-            elif r == 0: # top
-                n_data[n - 1, 9] = lung_r_zmax + z_buffer_2
-            elif r == nrings-2: # second bottom
-                n_data[n - 1, 9] = lung_r_zmin + z_buffer_3
-            elif r == 1: # second top
-                n_data[n - 1, 9] = lung_r_zmax - z_buffer_4
-            else:
-                n_data[n - 1, 9] = lung_r_zmax - z_buffer_4 - (z_ht - z_buffer_3 - z_buffer_4)/(nrings-3)*(r-1)
+            n_data[n - 1, 9] = landmark_zmin + ((r-1.6)*0.25)*(landmark_zmax - landmark_zmin)
+    
     if z_min < np.min(n_data[:, 9].astype(float)):
         print('WARNING: Data exists below mesh. Consider larger z_buffer or cropping data.')
     if z_max > np.max(n_data[:, 9].astype(float)):
@@ -286,6 +308,7 @@ def main():
     torso_directory = os.path.join(study, subject, protocol, 'Torso')
     lung_directory = os.path.join(study, subject, protocol, 'Lung')
     output_directory = os.path.join('output', subject, protocol, 'Torso')
+    landmarks_directory = os.path.join('../landmarks', study, subject, protocol)
 
     # make_ipdata_lungs(input_directory, output_directory, lung)
     if not os.path.exists(output_directory):
@@ -294,7 +317,7 @@ def main():
     # PREPARE
     if fit_type.lower() in ['prepare', 'pre']:
         print (" ===Move and scale an initial template mesh=== ")
-        initialise_torso_mesh(torso_directory, lung_directory, output_directory, template_path)
+        initialise_torso_mesh(torso_directory, lung_directory, output_directory, template_path, landmarks_directory)
         print (" -----mesh prepared")
         print (" -----transformed nodes exported")
         import_node_geometry_2d(os.path.join(template_path, 'templatetorso'))
@@ -327,7 +350,7 @@ def main():
 
         # Read in subject data
         # define_data_geometry(os.path.join(output_directory, 'surface_Torsotrimmed'))
-        define_data_geometry(os.path.join(torso_directory, 'surface_Torsotrimmed_crop_cut'))
+        define_data_geometry(os.path.join(torso_directory, 'surface_Torsotrimmed_crop_tf'))
         print (" -----data read")
         
         # Run fit
