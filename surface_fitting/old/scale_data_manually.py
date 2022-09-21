@@ -5,7 +5,7 @@ import os
 
 input_list = np.array(pd.read_excel("/hpc/mpag253/Torso/torso_checklist.xlsx", skiprows=0, usecols=range(5), engine='openpyxl'))
 
-scale_factors = [1., 1., 0.6640625/0.5]  # 761./512.*0.5/
+scale_factors = [ 1.25, 1.25, 1.25]  # 761./512.*0.5/
 
 print("\n")
 for i in range(np.shape(input_list)[0]):
@@ -24,7 +24,7 @@ for i in range(np.shape(input_list)[0]):
                 lines_data[ln+1] = "{:14.6e}\n".format(float(lines_data[ln+1])*scale_factors[0])
                 lines_data[ln+2] = "{:14.6e}\n".format(float(lines_data[ln+2])*scale_factors[1])
                 lines_data[ln+3] = "{:14.6e}\n".format(float(lines_data[ln+3])*scale_factors[2])
-        f = open(torso_dir + "/surface_Torsotrimmed_scaled.exdata", "a")
+        f = open(torso_dir + "/surface_Torsotrimmed_scaled.exdata", "w")
         f.writelines(lines_data)
         f.close()
                 
@@ -38,6 +38,6 @@ for i in range(np.shape(input_list)[0]):
                 line_data[2] = "{:.6e}".format(float(line_data[2])*scale_factors[1])
                 line_data[3] = "{:.6e}".format(float(line_data[3])*scale_factors[2])
                 lines_data[ln] = " {}\n".format(" ".join([i for i in line_data]))
-        f = open(torso_dir + "/surface_Torsotrimmed_scaled.ipdata", "a")
+        f = open(torso_dir + "/surface_Torsotrimmed_scaled.ipdata", "w")
         f.writelines(lines_data)
         f.close()

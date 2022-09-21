@@ -1,9 +1,13 @@
 
-$study = 'Human_Aging';
-$subject = 'AGING039';
-$condition = 'EIsupine';
+#$study = 'Human_Aging';
+#$subject = 'AGING039';
+#$condition = 'EIsupine';
+
+$study = 'Human_Lung_Atlas';
+$subject ='P2BRP139-H6229';
+$condition = 'EIsupine'; 
+
 $lungpath = $study.'/'.$subject.'/'.$condition.'/Lung/SurfaceFEMesh';
- 
 $fitpath = 'output/'.$subject.'/'.$condition.'/Torso';
 $datapath = $study.'/'.$subject.'/'.$condition.'/Torso';
 
@@ -24,7 +28,7 @@ gfx mod g_e surface_Torso data_points glyph point size "4*4*4" material green;
 gfx mod g_e mesh_LungLeft surface mat lung_surface;
 gfx mod g_e mesh_LungRight surface mat lung_surface;
 
-#gfx edit scene;
+gfx edit scene;
 gfx cre wind;
 #gfx node_tool edit select;
 

@@ -117,7 +117,10 @@ def get_voxel_coordinates(indices, image_info):
 #        for protocol in protocols:
 
 torso_path = "/hpc/mpag253/Torso/"
-input_list = np.array(pd.read_excel(torso_path+"landmarks/torso_landmarks.xlsx", skiprows=0, usecols=range(18), engine='openpyxl'))
+input_list = np.array(pd.read_excel(torso_path+"torso_checklist.xlsx", skiprows=0, usecols=range(5), engine='openpyxl'))
+
+# (optional for scale data)
+scale_factor = 1.0
 
 print("\n")
 for i in range(np.shape(input_list)[0]):
@@ -125,8 +128,11 @@ for i in range(np.shape(input_list)[0]):
             [study, subject, protocol] = input_list[i, 1:4]
             print("\tTransfoming... \t"+study+", \t"+subject+", \t"+protocol)
             
-            lung_dir = os.path.join(study, subject, protocol, 'Lung')
+            lung_input_dir = os.path.join(study, subject, protocol, 'Lung', 'SurfaceFEMesh')
+            lung_output_dir = os.path.join('output', subject, protocol, 'Lung', 'SurfaceFEMesh')
             median_dir = '/hpc/mpag253/Ribs/median_plane/output/'+study+'/'+subject+'/'+protocol+'/Median_Plane'
+   
+            os.makedirs(torso_path+'/surface_fitting/'+lung_output_dir, exist_ok=True)
    
             # Rotate the data using the median plane
             # load the median plane
@@ -140,10 +146,13 @@ for i in range(np.shape(input_list)[0]):
             #print("test vector:", test_vector)
             #exit(0)
             
-            # EXNODE: Read data, eliminate points outside limits, and write new file
+            
+            
+            
+            # EXNODE: Read data, transform, and write new file
             #print('EXNODE:')
             for lung in ['Right', 'Left']:
-                file_data = open(lung_dir + "/SurfaceFEMesh/"+lung+"_fitted.exnode", 'r')
+                file_data = open(lung_input_dir+"/"+lung+"_fitted.exnode", 'r')
                 lines_data = file_data.readlines()
                 file_data.close()
                 remove_gt_count = 0
@@ -184,9 +193,14 @@ for i in range(np.shape(input_list)[0]):
                         for ver in range(n_vers):
                             for deriv in range(4):
                                 [xval, yval, zval] = data[:, ver, deriv]
+                                # (optional scale data)
+                                xval *= scale_factor
+                                yval *= scale_factor
+                                zval *= scale_factor
+                                # rotational transform
                                 [xp, yp, zp] = do_transform(unit_normal_vector, [xval, yval, zval])
                                 data_tf[:, ver, deriv] = [xp, yp, zp]
-                                      
+                                                                      
                         # disassemble data for write
                         for d in range(3):
                             # data transformed 
@@ -217,48 +231,80 @@ for i in range(np.shape(input_list)[0]):
                             
                             # add whitespace to first line of each direction
                             lines_data[ln+d*n_vers+1] = "  "+lines_data[ln+d*n_vers+1]
-                            
-                file_out = open(lung_dir + "/SurfaceFEMesh/"+lung+"_fitted_tf.exnode", 'w')
+                 
+                file_out = open(lung_output_dir+"/"+lung+"_fitted_tf.exnode", 'w')
                 file_out.writelines(lines_data)
                 file_out.close() 
             
            
-            ## IPNODE: Read data, eliminate points outside limits, and write new file
-            ##print('IPNODE:')
-            #file_data = open(torso_dir + "/SurfaceFEMesh/Left_fitted_tf.ipnode", 'r')
-            #lines_data = file_data.readlines()
-            #file_data.close()
-            #remove_gt_count = 0
-            #remove_lt_count = 0
-            #for ln, line in enumerate(lines_data):
-            #    if not line.startswith(" converted"):
-            #    
-            #        # extract data point
-            #        line_array = line.split()
-            #        x = float(line_array[1])
-            #        y = float(line_array[2])
-            #        z = float(line_array[3])
-            #                            
-            #        # transform point
-            #        [xp, yp, zp] = do_transform(unit_normal_vector, [x, y, z])
-            #        
-            #        # crop point
-            #        if zp > data_lim_max:
-            #            #print('\t'+subject+': Data removed with z = {:.3f} ( > limit of {:.3f})'.format(zval, data_lim_max))
-            #            lines_data[ln] = ''
-            #            remove_gt_count += 1
-            #        elif zp < data_lim_min:
-            #            #print('\t'+subject+': Data removed with z = {:.3f} ( < limit of {:.3f})'.format(zval, data_lim_min))
-            #            lines_data[ln] = ''
-            #            remove_lt_count += 1
-            #        else:
-            #            # e.g. format " 8.170801e+01"
-            #            lines_data[ln] = " {} {:12.6e} {:12.6e} {:12.6e} {} {} {}\n".format(line_array[0], xp, yp, zp, line_array[4], line_array[5], line_array[6])
-            #print(subject+': Removed {:d} points from ipdata ( {:>5d} < {:.3f}, {:d} > {:.3f})'.format(
-            #      remove_lt_count+remove_gt_count, remove_lt_count, data_lim_min, remove_gt_count, data_lim_max))    
-            #file_out = open(torso_dir + "/surface_Torsotrimmed_crop_tf.ipdata", 'w')
-            #file_out.writelines(lines_data)
-            #file_out.close() 
+           
+           
+            # IPNODE: Read data, transform, and write new file
+            #print('IPNODE:')
+            for lung in ['Right', 'Left']:
+                file_data = open(lung_input_dir+"/"+lung+"_fitted.ipnode", 'r')
+                lines = file_data.readlines()
+                file_data.close()
+                remove_gt_count = 0
+                remove_lt_count = 0
+                for ln, line in enumerate(lines):
+                    
+                    # Extract the number of derivative - assumed equal for all directions
+                    if line.startswith(" The number of derivatives for coordinate 1"):
+                        n_deriv = int(line.split()[-1])
+                    
+                    # Extract info for each node
+                    if line.startswith(" Node number "):
+                        
+                        # node number
+                        node_num = int(line.split()[-1])
+                        # number of versions
+                        n_vers = int(lines[ln+1].split()[-1])
+                        # number of node values
+                        n_vals = n_deriv + 1
+                    
+                        # assemble data for each direction
+                        data = np.empty([n_vers, n_vals, 3])
+                        for v in range(n_vers):
+                            for d in range(n_vals):
+                                for c in range(3):
+                                    if n_vers == 1:
+                                        data_ln = ln+2+(5*c)+d
+                                    else:
+                                        data_ln = ln+3+(5*c*n_vers+c)+(5*v)+d
+                                    split_line = lines[data_ln].split()
+                                    data[v, d, c] = float(split_line[-1])
+                        #print(data)
+                                           
+                        # transform data
+                        data_tf = np.empty(np.shape(data))
+                        for v in range(n_vers):
+                            for d in range(n_vals):
+                                [xval, yval, zval] = data[v, d, :]
+                                # (optional scale data)
+                                xval *= scale_factor
+                                yval *= scale_factor
+                                zval *= scale_factor
+                                # rotational transform
+                                [xp, yp, zp] = do_transform(unit_normal_vector, [xval, yval, zval])
+                                data_tf[v, d, :] = [xp, yp, zp]
+                        #print(data_tf, "\n")
+                        
+                        # write out the transformed data
+                        for v in range(n_vers):
+                            for d in range(n_vals):
+                                for c in range(3):
+                                    if n_vers == 1:
+                                        data_ln = ln+2+(5*c)+d
+                                    else:
+                                        data_ln = ln+3+(5*c*n_vers+c)+(5*v)+d
+                                    split_line = lines[data_ln].split()
+                                    split_line[-1] = "{:>21f}\n".format(data_tf[v, d, c])
+                                    lines[data_ln] = " "+" ".join(split_line)
+                
+                file_out = open(lung_output_dir+"/"+lung+"_fitted_tf.ipnode", 'w')
+                file_out.writelines(lines)
+                file_out.close() 
             
             
             

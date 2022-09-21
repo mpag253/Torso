@@ -117,12 +117,13 @@ def get_voxel_coordinates(indices, image_info):
 #        for protocol in protocols:
 
 torso_path = "/hpc/mpag253/Torso/"
-input_list = np.array(pd.read_excel(torso_path+"landmarks/torso_landmarks.xlsx", skiprows=0, usecols=range(18), engine='openpyxl'))
+input_list = np.array(pd.read_excel(torso_path+"torso_checklist.xlsx", skiprows=0, usecols=range(5), engine='openpyxl'))
+landmarks = np.array(pd.read_excel(torso_path+"landmarks/torso_landmarks.xlsx", skiprows=0, usecols=range(18), engine='openpyxl'))
 
 print("\n")
 for i in range(np.shape(input_list)[0]):
     if input_list[i, 0] == 1:
-            [study, subject, protocol] = input_list[i, 1:4]
+            [study, subject, protocol] = landmarks[i, 1:4]
             print("\tPreparing... \t"+study+", \t"+subject+", \t"+protocol)
             
             lung_dir = os.path.join(study, subject, protocol, 'Lung')
@@ -153,9 +154,9 @@ for i in range(np.shape(input_list)[0]):
             #lung_r_zmin_tf = lung_r_min_tf[2]
             #lung_r_zmax_tf = lung_r_max_tf[2]
             # get new landmarks
-            landmark_T02_vx = input_list[i, [17, 16, 15]]  # in voxel indices
-            landmark_T11_vx = input_list[i, [14, 13, 12]]  # in voxel indices
-            image_info = input_list[i, 5:11]
+            landmark_T02_vx = landmarks[i, [17, 16, 15]]  # in voxel indices
+            landmark_T11_vx = landmarks[i, [14, 13, 12]]  # in voxel indices
+            image_info = landmarks[i, 5:11]
             landmark_T02_mm = get_voxel_coordinates(landmark_T02_vx, image_info)  # in millimetres
             landmark_T11_mm = get_voxel_coordinates(landmark_T11_vx, image_info)  # in millimetres
             landmark_T02_tf = do_transform(unit_normal_vector, landmark_T02_mm)  # in transformed coordinates
