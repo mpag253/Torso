@@ -133,7 +133,7 @@ def centroids_of_labels_3d(im, bg=-1):
 def manually_select_landmarks(image, subject, protocol, slice_xs):
 
     # define the index to take the slice
-    slice_idx = int(np.mean(slice_xs[~np.isnan(slice_xs)]))
+    slice_idx = int(np.mean(slice_xs[~np.isnan(slice_xs)])) +20
 
     # Load the rib labels matrix - to overlay ribs on image, help identify vertebral levels
     #ribs_image = load_sparse('/hpc/mpag253/Ribs/segmentation/Rib_Labels/ribs_labelled_'+subject+'_'+protocol+'.pkl')
